@@ -1,0 +1,65 @@
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import CategoricalNB
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+import pandas as pd
+
+# Dataset with Colors and Objects
+data = [
+    {"Color": "Red", "Object": "Ball", "Play": "Yes"},
+    {"Color": "Blue", "Object": "Ball", "Play": "No"},
+    {"Color": "Green", "Object": "Ball", "Play": "Yes"},
+    {"Color": "Red", "Object": "Box", "Play": "Yes"},
+    {"Color": "Blue", "Object": "Box", "Play": "No"},
+    {"Color": "Green", "Object": "Box", "Play": "Yes"},
+    {"Color": "Red", "Object": "Bottle", "Play": "No"},
+    {"Color": "Blue", "Object": "Bottle", "Play": "No"},
+    {"Color": "Green", "Object": "Bottle", "Play": "Yes"},
+    {"Color": "Red", "Object": "Ball", "Play": "Yes"},
+    {"Color": "Blue", "Object": "Box", "Play": "No"},
+    {"Color": "Green", "Object": "Ball", "Play": "Yes"},
+    {"Color": "Red", "Object": "Bottle", "Play": "No"},
+    {"Color": "Green", "Object": "Box", "Play": "Yes"},
+]
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# Encode categorical data to numeric
+encoded_columns = {}
+for col in df.columns:
+    df[col], unique_values = pd.factorize(df[col])
+    encoded_columns[col] = unique_values
+
+# Split features and target
+X = df.drop(columns="Play")
+y = df["Play"]
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Model training
+model = CategoricalNB()
+model.fit(X_train, y_train)
+
+# Predictions
+y_pred = model.predict(X_test)
+
+# Calculate confusion matrix and accuracy
+conf_matrix = confusion_matrix(y_test, y_pred)
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred, target_names=["No", "Yes"])
+
+# Display results
+print("Confusion Matrix:\n", conf_matrix)
+print("\nAccuracy:", accuracy)
+print("\nClassification Report:\n", report)
+
+# Prediction for Color=Red and Object=Ball
+test_instance = {"Color": "Red", "Object": "Ball"}
+test_instance_encoded = [
+    list(encoded_columns[col]).index(test_instance[col]) for col in test_instance
+]
+test_prediction = model.predict([test_instance_encoded])
+decoded_prediction = encoded_columns["Play"][test_prediction[0]]
+
+print("\nPredicted Class for Red/Ball:", decoded_prediction)
