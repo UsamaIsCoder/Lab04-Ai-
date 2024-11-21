@@ -1,53 +1,65 @@
+from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import CategoricalNB
-from sklearn.preprocessing import LabelEncoder
-import numpy as np
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+import pandas as pd
 
-# Dataset
+# Dataset with Weather and Temperature
 data = [
-    ['Sunny', 'Hot', 'No'],
-    ['Sunny', 'Hot', 'No'],
-    ['Overcast', 'Hot', 'Yes'],
-    ['Rainy', 'Mild', 'Yes'],
-    ['Rainy', 'Cool', 'Yes'],
-    ['Rainy', 'Cool', 'No'],
-    ['Overcast', 'Cool', 'Yes'],
-    ['Sunny', 'Mild', 'No'],
-    ['Sunny', 'Cool', 'Yes'],
-    ['Rainy', 'Mild', 'Yes'],
-    ['Sunny', 'Mild', 'Yes'],
-    ['Overcast', 'Mild', 'Yes'],
-    ['Overcast', 'Hot', 'Yes'],
-    ['Rainy', 'Mild', 'No']
+    {"Weather": "Sunny", "Temperature": "Hot", "Play": "No"},
+    {"Weather": "Sunny", "Temperature": "Mild", "Play": "No"},
+    {"Weather": "Overcast", "Temperature": "Hot", "Play": "Yes"},
+    {"Weather": "Overcast", "Temperature": "Cool", "Play": "Yes"},
+    {"Weather": "Rainy", "Temperature": "Cool", "Play": "No"},
+    {"Weather": "Rainy", "Temperature": "Mild", "Play": "Yes"},
+    {"Weather": "Rainy", "Temperature": "Hot", "Play": "Yes"},
+    {"Weather": "Sunny", "Temperature": "Cool", "Play": "No"},
+    {"Weather": "Sunny", "Temperature": "Hot", "Play": "Yes"},
+    {"Weather": "Rainy", "Temperature": "Cool", "Play": "Yes"},
+    {"Weather": "Overcast", "Temperature": "Mild", "Play": "Yes"},
+    {"Weather": "Sunny", "Temperature": "Mild", "Play": "Yes"},
+    {"Weather": "Overcast", "Temperature": "Cool", "Play": "Yes"},
+    {"Weather": "Rainy", "Temperature": "Hot", "Play": "No"},
 ]
 
-# Splitting features (Weather, Temperature) and target (Play)
-X = [row[:2] for row in data]  # Features: Weather and Temperature
-y = [row[2] for row in data]  # Target: Play
+# Convert to DataFrame
+df = pd.DataFrame(data)
 
-# Encode categorical data into numerical format
-weather_encoder = LabelEncoder()
-temp_encoder = LabelEncoder()
-play_encoder = LabelEncoder()
+# Encode categorical data to numeric
+encoded_columns = {}
+for col in df.columns:
+    df[col], unique_values = pd.factorize(df[col])
+    encoded_columns[col] = unique_values
 
-# Encoding features and target
-weather_encoded = weather_encoder.fit_transform([row[0] for row in X])
-temp_encoded = temp_encoder.fit_transform([row[1] for row in X])
-play_encoded = play_encoder.fit_transform(y)
+# Split features and target
+X = df.drop(columns="Play")
+y = df["Play"]
 
-# Combine encoded features into a single array
-X_encoded = np.array(list(zip(weather_encoded, temp_encoded)))
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Create and train the Naïve Bayes model
+# Model training
 model = CategoricalNB()
-model.fit(X_encoded, play_encoded)
+model.fit(X_train, y_train)
 
-# Encoding the test case (Weather = Overcast, Temperature = Mild)
-test_weather = weather_encoder.transform(['Overcast'])[0]
-test_temp = temp_encoder.transform(['Mild'])[0]
-test_data = np.array([[test_weather, test_temp]])
+# Predictions
+y_pred = model.predict(X_test)
 
-# Predicting the output
-prediction = model.predict(test_data)
-predicted_class = play_encoder.inverse_transform(prediction)
+# Calculate confusion matrix and accuracy
+conf_matrix = confusion_matrix(y_test, y_pred)
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred, target_names=["No", "Yes"])
 
-print(f"Prediction for Weather=Overcast and Temperature=Mild: {predicted_class[0]}")
+# Display results
+print("Confusion Matrix:\n", conf_matrix)
+print("\nAccuracy:", accuracy)
+print("\nClassification Report:\n", report)
+
+# Prediction for Weather=Overcast and Temperature=Mild
+test_instance = {"Weather": "Overcast", "Temperature": "Mild"}
+test_instance_encoded = [
+    list(encoded_columns[col]).index(test_instance[col]) for col in test_instance
+]
+test_prediction = model.predict([test_instance_encoded])
+decoded_prediction = encoded_columns["Play"][test_prediction[0]]
+
+print("\nPredicted Class for Overcast/Mild:", decoded_prediction)
